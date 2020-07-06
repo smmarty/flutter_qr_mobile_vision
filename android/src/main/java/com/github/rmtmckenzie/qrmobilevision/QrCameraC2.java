@@ -263,9 +263,8 @@ class QrCameraC2 implements QrCamera {
                 previewBuilder.set(CaptureRequest.CONTROL_AF_MODE, afMode);
                 if (afMode == CONTROL_AF_MODE_AUTO) {
                     previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-                }
-                else {
-                    previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+                } else {
+                    previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_IDLE);
                 }
             }
         } catch (java.lang.Exception e) {
