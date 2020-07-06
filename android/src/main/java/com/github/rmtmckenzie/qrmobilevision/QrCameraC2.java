@@ -256,20 +256,17 @@ class QrCameraC2 implements QrCamera {
             previewBuilder = cameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
             previewBuilder.addTarget(list.get(0));
             previewBuilder.addTarget(list.get(1));
-
-            Integer afMode = afMode(cameraCharacteristics);
-
             previewBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
 
+            Integer afMode = afMode(cameraCharacteristics);
             if (afMode != null) {
                 previewBuilder.set(CaptureRequest.CONTROL_AF_MODE, afMode);
-                Log.i(TAG, "Setting af mode to: " + afMode);
                 if (afMode == CONTROL_AF_MODE_AUTO) {
                     previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
                 }
-//                else {
-//                    previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
-//                }
+                else {
+                    previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+                }
             }
         } catch (java.lang.Exception e) {
             e.printStackTrace();
