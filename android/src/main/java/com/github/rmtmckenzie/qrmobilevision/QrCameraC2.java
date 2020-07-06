@@ -30,10 +30,12 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Observable;
 
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_EDOF;
 import static android.hardware.camera2.CameraMetadata.LENS_FACING_BACK;
 
 /**
@@ -153,7 +155,7 @@ class QrCameraC2 implements QrCamera {
             Integer sensorOrientationInteger = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
             sensorOrientation = sensorOrientationInteger == null ? 0 : sensorOrientationInteger;
 
-            size = getAppropriateSize(map.getOutputSizes(SurfaceTexture.class));
+            size = getAppropriatePreviewSize(map.getOutputSizes(SurfaceTexture.class));
             jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
 
             manager.openCamera(cameraId, new CameraDevice.StateCallback() {
@@ -190,15 +192,16 @@ class QrCameraC2 implements QrCamera {
             modes.add(afMode);
         }
 
-        if (modes.contains(CONTROL_AF_MODE_CONTINUOUS_VIDEO)) {
-            return CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-        } else if (modes.contains(CONTROL_AF_MODE_CONTINUOUS_PICTURE)) {
+        if (modes.contains(CONTROL_AF_MODE_CONTINUOUS_PICTURE)) {
             return CONTROL_AF_MODE_CONTINUOUS_PICTURE;
         } else if (modes.contains(CONTROL_AF_MODE_AUTO)) {
             return CONTROL_AF_MODE_AUTO;
-        } else {
-            return null;
+        }  else if (modes.contains(CONTROL_AF_MODE_CONTINUOUS_VIDEO)) {
+            return CONTROL_AF_MODE_CONTINUOUS_VIDEO;
+        } else if (modes.contains(CONTROL_AF_MODE_EDOF)) {
+            return CONTROL_AF_MODE_EDOF;
         }
+        return null;
     }
 
     static class Frame implements QrDetector.Frame {
@@ -225,7 +228,7 @@ class QrCameraC2 implements QrCamera {
     private void startCamera() {
         List<Surface> list = new ArrayList<>();
 
-        Size jpegSize = getAppropriateSize(jpegSizes);
+        Size jpegSize = getAppropriateImageSize(jpegSizes);
 
         final int width = jpegSize.getWidth(), height = jpegSize.getHeight();
         reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 5);
@@ -263,9 +266,10 @@ class QrCameraC2 implements QrCamera {
                 Log.i(TAG, "Setting af mode to: " + afMode);
                 if (afMode == CONTROL_AF_MODE_AUTO) {
                     previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_START);
-                } else {
-                    previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
                 }
+//                else {
+//                    previewBuilder.set(CaptureRequest.CONTROL_AF_TRIGGER, CaptureRequest.CONTROL_AF_TRIGGER_CANCEL);
+//                }
             }
         } catch (java.lang.Exception e) {
             e.printStackTrace();
@@ -318,7 +322,55 @@ class QrCameraC2 implements QrCamera {
         }
     }
 
-    private Size getAppropriateSize(Size[] sizes) {
+    private Size getAppropriatePreviewSize(Size[] sizes) {
+        // assume sizes is never 0
+        return sizes[0];
+//        if (sizes.length == 1) {
+//            return sizes[0];
+//        }
+
+//        Size s = sizes[0];
+//        Size s1 = sizes[1];
+//
+//        if (s1.getWidth() > s.getWidth() || s1.getHeight() > s.getHeight()) {
+//            // ascending
+//            if (sensorOrientation % 180 == 0) {
+//                for (Size size : sizes) {
+//                    s = size;
+//                    if (size.getHeight() > targetHeight && size.getWidth() > targetWidth) {
+//                        break;
+//                    }
+//                }
+//            } else {
+//                for (Size size : sizes) {
+//                    s = size;
+//                    if (size.getHeight() > targetWidth && size.getWidth() > targetHeight) {
+//                        break;
+//                    }
+//                }
+//            }
+//        } else {
+//            // descending
+//            if (sensorOrientation % 180 == 0) {
+//                for (Size size : sizes) {
+//                    if (size.getHeight() < targetHeight || size.getWidth() < targetWidth) {
+//                        break;
+//                    }
+//                    s = size;
+//                }
+//            } else {
+//                for (Size size : sizes) {
+//                    if (size.getHeight() < targetWidth || size.getWidth() < targetHeight) {
+//                        break;
+//                    }
+//                    s = size;
+//                }
+//            }
+//        }
+//        return s;
+    }
+
+    private Size getAppropriateImageSize(Size[] sizes) {
         // assume sizes is never 0
         if (sizes.length == 1) {
             return sizes[0];

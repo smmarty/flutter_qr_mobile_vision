@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.ImageFormat;
 import android.graphics.SurfaceTexture;
+import android.hardware.Camera;
 import android.util.Log;
 import android.util.SparseIntArray;
 import android.view.Surface;
@@ -13,6 +14,7 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -94,10 +96,15 @@ class QrCameraC1 implements QrCamera {
         final android.hardware.Camera.Parameters parameters = camera.getParameters();
 
         List<String> focusModes = parameters.getSupportedFocusModes();
-        if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO)) {
-            Log.i(TAG, "Initializing with autofocus on.");
+        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)){
+            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
+        } if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO)) {
             parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO);
-        } else {
+        } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)){
+            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
+        } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_EDOF)){
+            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_EDOF);
+        } else  {
             Log.i(TAG, "Initializing with autofocus off as not supported.");
         }
 
@@ -131,11 +138,13 @@ class QrCameraC1 implements QrCamera {
                     }
                 }
             });
+
             camera.setPreviewTexture(texture);
             camera.startPreview();
             camera.autoFocus(new android.hardware.Camera.AutoFocusCallback() {
                 @Override
                 public void onAutoFocus(boolean success, android.hardware.Camera camera) {
+                    Log.d(TAG, "onAutoFocus: " + success);
                 }
             });
         } catch (IOException e) {
@@ -189,48 +198,49 @@ class QrCameraC1 implements QrCamera {
     //Size here is Camera.Size, not android.util.Size as in the QrCameraC2 version of this method
     private android.hardware.Camera.Size getAppropriateSize(List<android.hardware.Camera.Size> sizes) {
         // assume sizes is never 0
-        if (sizes.size() == 1) {
-            return sizes.get(0);
-        }
-
-        android.hardware.Camera.Size s = sizes.get(0);
-        android.hardware.Camera.Size s1 = sizes.get(1);
-
-        if (s1.width > s.width || s1.height > s.height) {
-            // ascending
-            if (info.orientation % 180 == 0) {
-                for (android.hardware.Camera.Size size : sizes) {
-                    s = size;
-                    if (size.height > targetHeight && size.width > targetWidth) {
-                        break;
-                    }
-                }
-            } else {
-                for (android.hardware.Camera.Size size : sizes) {
-                    s = size;
-                    if (size.height > targetWidth && size.width > targetHeight) {
-                        break;
-                    }
-                }
-            }
-        } else {
-            // descending
-            if (info.orientation % 180 == 0) {
-                for (android.hardware.Camera.Size size : sizes) {
-                    if (size.height < targetHeight || size.width < targetWidth) {
-                        break;
-                    }
-                    s = size;
-                }
-            } else {
-                for (android.hardware.Camera.Size size : sizes) {
-                    if (size.height < targetWidth || size.width < targetHeight) {
-                        break;
-                    }
-                    s = size;
-                }
-            }
-        }
-        return s;
+        return sizes.get(0);
+//        if (sizes.size() == 1) {
+//            return sizes.get(0);
+//        }
+//
+//        android.hardware.Camera.Size s = sizes.get(0);
+//        android.hardware.Camera.Size s1 = sizes.get(1);
+//
+//        if (s1.width > s.width || s1.height > s.height) {
+//            // ascending
+//            if (info.orientation % 180 == 0) {
+//                for (android.hardware.Camera.Size size : sizes) {
+//                    s = size;
+//                    if (size.height > targetHeight && size.width > targetWidth) {
+//                        break;
+//                    }
+//                }
+//            } else {
+//                for (android.hardware.Camera.Size size : sizes) {
+//                    s = size;
+//                    if (size.height > targetWidth && size.width > targetHeight) {
+//                        break;
+//                    }
+//                }
+//            }
+//        } else {
+//            // descending
+//            if (info.orientation % 180 == 0) {
+//                for (android.hardware.Camera.Size size : sizes) {
+//                    if (size.height < targetHeight || size.width < targetWidth) {
+//                        break;
+//                    }
+//                    s = size;
+//                }
+//            } else {
+//                for (android.hardware.Camera.Size size : sizes) {
+//                    if (size.height < targetWidth || size.width < targetHeight) {
+//                        break;
+//                    }
+//                    s = size;
+//                }
+//            }
+//        }
+//        return s;
     }
 }
