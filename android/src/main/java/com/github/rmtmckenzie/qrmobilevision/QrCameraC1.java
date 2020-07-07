@@ -14,7 +14,6 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -23,7 +22,7 @@ import java.util.List;
  * so that deprecation warnings can be avoided.
  */
 @TargetApi(16)
-class QrCameraC1 implements QrCamera {
+class QrCameraC1 implements QrCamera, Camera.AutoFocusCallback {
 
     private static final String TAG = "cgr.qrmv.QrCameraC1";
     private static final int IMAGEFORMAT = ImageFormat.NV21;
@@ -96,10 +95,11 @@ class QrCameraC1 implements QrCamera {
         final android.hardware.Camera.Parameters parameters = camera.getParameters();
 
         List<String> focusModes = parameters.getSupportedFocusModes();
-        if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)){
-            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
-        } if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO)) {
+
+        if (focusModes.contains(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO)) {
             parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_AUTO);
+        } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE)){
+            parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);
         } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)){
             parameters.setFocusMode(android.hardware.Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO);
         } else if (focusModes.contains(Camera.Parameters.FOCUS_MODE_EDOF)){
@@ -121,33 +121,33 @@ class QrCameraC1 implements QrCamera {
                 @Override
                 public void onPreviewFrame(byte[] data, android.hardware.Camera camera) {
                     android.hardware.Camera.Size previewSize = camera.getParameters().getPreviewSize();
-
                     if (data != null) {
-
                         QrDetector.Frame frame = new Frame(data, new FirebaseVisionImageMetadata.Builder()
                             .setFormat(IMAGEFORMAT)
                             .setWidth(previewSize.width)
                             .setHeight(previewSize.height)
                             .setRotation(getFirebaseOrientation())
                             .build());
-
                         detector.detect(frame);
-                    } else {
-                        //TODO: something better here?
-                        System.out.println("It's NULL!");
                     }
                 }
             });
 
             camera.setPreviewTexture(texture);
             camera.startPreview();
-            camera.autoFocus(new android.hardware.Camera.AutoFocusCallback() {
-                @Override
-                public void onAutoFocus(boolean success, android.hardware.Camera camera) {
-                    Log.d(TAG, "onAutoFocus: " + success);
-                }
-            });
+            camera.autoFocus(this);
         } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    @Override
+    public void onAutoFocus(boolean success, Camera camera) {
+        try {
+            camera.cancelAutoFocus();
+            camera.autoFocus(this);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
@@ -190,6 +190,12 @@ class QrCameraC1 implements QrCamera {
 
     @Override
     public void stop() {
+        try {
+            camera.cancelAutoFocus();
+            camera.autoFocus(this);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         camera.stopPreview();
         camera.setPreviewCallback(null);
         camera.release();
@@ -244,3 +250,5 @@ class QrCameraC1 implements QrCamera {
 //        return s;
     }
 }
+
+
