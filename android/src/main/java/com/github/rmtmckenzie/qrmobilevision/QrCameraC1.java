@@ -14,6 +14,7 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -204,50 +205,51 @@ class QrCameraC1 implements QrCamera, Camera.AutoFocusCallback {
     //Size here is Camera.Size, not android.util.Size as in the QrCameraC2 version of this method
     private android.hardware.Camera.Size getAppropriateSize(List<android.hardware.Camera.Size> sizes) {
         // assume sizes is never 0
-        return sizes.get(0);
-//        if (sizes.size() == 1) {
-//            return sizes.get(0);
-//        }
-//
-//        android.hardware.Camera.Size s = sizes.get(0);
-//        android.hardware.Camera.Size s1 = sizes.get(1);
-//
-//        if (s1.width > s.width || s1.height > s.height) {
-//            // ascending
-//            if (info.orientation % 180 == 0) {
-//                for (android.hardware.Camera.Size size : sizes) {
-//                    s = size;
-//                    if (size.height > targetHeight && size.width > targetWidth) {
-//                        break;
-//                    }
-//                }
-//            } else {
-//                for (android.hardware.Camera.Size size : sizes) {
-//                    s = size;
-//                    if (size.height > targetWidth && size.width > targetHeight) {
-//                        break;
-//                    }
-//                }
-//            }
-//        } else {
-//            // descending
-//            if (info.orientation % 180 == 0) {
-//                for (android.hardware.Camera.Size size : sizes) {
-//                    if (size.height < targetHeight || size.width < targetWidth) {
-//                        break;
-//                    }
-//                    s = size;
-//                }
-//            } else {
-//                for (android.hardware.Camera.Size size : sizes) {
-//                    if (size.height < targetWidth || size.width < targetHeight) {
-//                        break;
-//                    }
-//                    s = size;
-//                }
-//            }
-//        }
-//        return s;
+        Log.d(TAG, "getAppropriatePreviewSize: sizes " + Arrays.toString(sizes.toArray()));
+        if (sizes.size() == 1) {
+            return sizes.get(0);
+        }
+
+        android.hardware.Camera.Size s = sizes.get(0);
+        android.hardware.Camera.Size s1 = sizes.get(1);
+
+        if (s1.width > s.width || s1.height > s.height) {
+            // ascending
+            if (info.orientation % 180 == 0) {
+                for (android.hardware.Camera.Size size : sizes) {
+                    s = size;
+                    if (size.height > targetHeight && size.width > targetWidth) {
+                        break;
+                    }
+                }
+            } else {
+                for (android.hardware.Camera.Size size : sizes) {
+                    s = size;
+                    if (size.height > targetWidth && size.width > targetHeight) {
+                        break;
+                    }
+                }
+            }
+        } else {
+            // descending
+            if (info.orientation % 180 == 0) {
+                for (android.hardware.Camera.Size size : sizes) {
+                    if (size.height < targetHeight || size.width < targetWidth) {
+                        break;
+                    }
+                    s = size;
+                }
+            } else {
+                for (android.hardware.Camera.Size size : sizes) {
+                    if (size.height < targetWidth || size.width < targetHeight) {
+                        break;
+                    }
+                    s = size;
+                }
+            }
+        }
+        Log.d(TAG, "getAppropriatePreviewSize: selected " + s.toString());
+        return s;
     }
 }
 

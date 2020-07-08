@@ -117,8 +117,10 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
     return new LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       if (_asyncInitOnce == null && onScreen) {
+        final width = constraints.maxWidth * MediaQuery.of(context).devicePixelRatio;
+        final height = constraints.maxHeight * MediaQuery.of(context).devicePixelRatio;
         _asyncInitOnce =
-            _asyncInit(constraints.maxWidth, constraints.maxHeight);
+            _asyncInit(width, height);
       } else if (!onScreen) {
         return widget.offscreenBuilder(context);
       }

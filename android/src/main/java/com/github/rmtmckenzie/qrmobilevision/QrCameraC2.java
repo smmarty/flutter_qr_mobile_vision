@@ -28,6 +28,8 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Observable;
@@ -47,6 +49,7 @@ class QrCameraC2 implements QrCamera {
 
     private static final String TAG = "cgr.qrmv.QrCameraC2";
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
+    private static final Size minJpegSize = new Size(1024,768);
 
     static {
         ORIENTATIONS.append(Surface.ROTATION_0, 90);
@@ -132,6 +135,7 @@ class QrCameraC2 implements QrCamera {
         String cameraId = null;
         try {
             String[] cameraIdList = manager.getCameraIdList();
+            Log.d(TAG, "start: cameraIdList:" + Arrays.toString(cameraIdList));
             for (String id : cameraIdList) {
                 CameraCharacteristics cameraCharacteristics = manager.getCameraCharacteristics(id);
                 Integer integer = cameraCharacteristics.get(CameraCharacteristics.LENS_FACING);
@@ -156,6 +160,7 @@ class QrCameraC2 implements QrCamera {
             sensorOrientation = sensorOrientationInteger == null ? 0 : sensorOrientationInteger;
 
             size = getAppropriatePreviewSize(map.getOutputSizes(SurfaceTexture.class));
+            Log.d(TAG, "start: preview size: " + size.toString() + "input size: height " + targetHeight + "width:" + targetWidth );
             jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
 
             manager.openCamera(cameraId, new CameraDevice.StateCallback() {
@@ -228,7 +233,7 @@ class QrCameraC2 implements QrCamera {
     private void startCamera() {
         List<Surface> list = new ArrayList<>();
 
-        Size jpegSize = getAppropriateImageSize(jpegSizes);
+        final Size jpegSize = getAppropriateJpegSize(jpegSizes);
 
         final int width = jpegSize.getWidth(), height = jpegSize.getHeight();
         reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 5);
@@ -249,7 +254,6 @@ class QrCameraC2 implements QrCamera {
         };
 
         reader.setOnImageAvailableListener(imageAvailableListener, null);
-
         texture.setDefaultBufferSize(size.getWidth(), size.getHeight());
         list.add(new Surface(texture));
         try {
@@ -320,54 +324,7 @@ class QrCameraC2 implements QrCamera {
 
     private Size getAppropriatePreviewSize(Size[] sizes) {
         // assume sizes is never 0
-        return sizes[0];
-//        if (sizes.length == 1) {
-//            return sizes[0];
-//        }
-
-//        Size s = sizes[0];
-//        Size s1 = sizes[1];
-//
-//        if (s1.getWidth() > s.getWidth() || s1.getHeight() > s.getHeight()) {
-//            // ascending
-//            if (sensorOrientation % 180 == 0) {
-//                for (Size size : sizes) {
-//                    s = size;
-//                    if (size.getHeight() > targetHeight && size.getWidth() > targetWidth) {
-//                        break;
-//                    }
-//                }
-//            } else {
-//                for (Size size : sizes) {
-//                    s = size;
-//                    if (size.getHeight() > targetWidth && size.getWidth() > targetHeight) {
-//                        break;
-//                    }
-//                }
-//            }
-//        } else {
-//            // descending
-//            if (sensorOrientation % 180 == 0) {
-//                for (Size size : sizes) {
-//                    if (size.getHeight() < targetHeight || size.getWidth() < targetWidth) {
-//                        break;
-//                    }
-//                    s = size;
-//                }
-//            } else {
-//                for (Size size : sizes) {
-//                    if (size.getHeight() < targetWidth || size.getWidth() < targetHeight) {
-//                        break;
-//                    }
-//                    s = size;
-//                }
-//            }
-//        }
-//        return s;
-    }
-
-    private Size getAppropriateImageSize(Size[] sizes) {
-        // assume sizes is never 0
+        Log.d(TAG, "getAppropriatePreviewSize: sizes " + Arrays.toString(sizes));
         if (sizes.length == 1) {
             return sizes[0];
         }
@@ -410,6 +367,12 @@ class QrCameraC2 implements QrCamera {
                 }
             }
         }
+        Log.d(TAG, "getAppropriatePreviewSize: selected " + s.toString());
         return s;
     }
+
+    private Size getAppropriateJpegSize(Size[] sizes) {
+       return minJpegSize;
+    }
+
 }
