@@ -29,10 +29,8 @@ import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Observable;
+import java.util.List;;
 
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_AUTO;
 import static android.hardware.camera2.CameraMetadata.CONTROL_AF_MODE_CONTINUOUS_PICTURE;
@@ -160,7 +158,8 @@ class QrCameraC2 implements QrCamera {
             Integer sensorOrientationInteger = cameraCharacteristics.get(CameraCharacteristics.SENSOR_ORIENTATION);
             sensorOrientation = sensorOrientationInteger == null ? 0 : sensorOrientationInteger;
 
-            size = getAppropriatePreviewSize(map.getOutputSizes(SurfaceTexture.class),targetHeight,targetWidth);
+           // size = getAppropriatePreviewSize(map.getOutputSizes(SurfaceTexture.class),targetHeight,targetWidth);
+            size = CameraUtils.computeBestPreviewSize(cameraId, CameraUtils.ResolutionPreset.high);
             Log.d(TAG, "start: preview size: " + size.toString() + "input size: height " + targetHeight + "width:" + targetWidth );
             jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
 
