@@ -6,6 +6,45 @@ import 'package:flutter/rendering.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:qr_mobile_vision/qr_mobile_vision.dart';
 
+
+enum ResolutionPreset {
+  /// 352x288 on iOS, 240p (320x240) on Android
+  low,
+
+  /// 480p (640x480 on iOS, 720x480 on Android)
+  medium,
+
+  /// 720p (1280x720)
+  high,
+
+  /// 1080p (1920x1080)
+  veryHigh,
+
+  /// 2160p (3840x2160)
+  ultraHigh,
+
+  /// The highest resolution available.
+  max,
+}
+
+String serializeResolutionPreset(ResolutionPreset resolutionPreset) {
+  switch (resolutionPreset) {
+    case ResolutionPreset.max:
+      return 'max';
+    case ResolutionPreset.ultraHigh:
+      return 'ultraHigh';
+    case ResolutionPreset.veryHigh:
+      return 'veryHigh';
+    case ResolutionPreset.high:
+      return 'high';
+    case ResolutionPreset.medium:
+      return 'medium';
+    case ResolutionPreset.low:
+      return 'low';
+  }
+  throw ArgumentError('Unknown ResolutionPreset value');
+}
+
 final WidgetBuilder _defaultNotStartedBuilder =
     (context) => new Text("Camera Loading ...");
 final WidgetBuilder _defaultOffscreenBuilder =

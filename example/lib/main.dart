@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:qr_mobile_vision/qr_camera.dart';
-import 'package:qr_mobile_vision/qr_mobile_vision.dart';
 
 void main() {
   debugPaintSizeEnabled = false;
@@ -37,9 +36,6 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return new Scaffold(
-      appBar: new AppBar(
-        title: new Text('Plugin example app'),
-      ),
       body: new Center(
         child: new Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -48,24 +44,20 @@ class _MyAppState extends State<MyApp> {
             new Expanded(
                 child: camState
                     ? new Center(
-                        child: new SizedBox(
-                          width: 300.0,
-                          height: 600.0,
-                          child: new QrCamera(
-                            onError: (context, error) => Text(
-                                  error.toString(),
-                                  style: TextStyle(color: Colors.red),
-                                ),
-                            qrCodeCallback: (code) {
-                              setState(() {
-                                qr = code;
-                              });
-                            },
-                            child: new Container(
-                              decoration: new BoxDecoration(
-                                color: Colors.transparent,
-                                border: Border.all(color: Colors.orange, width: 10.0, style: BorderStyle.solid),
+                        child: new QrCamera(
+                          onError: (context, error) => Text(
+                                error.toString(),
+                                style: TextStyle(color: Colors.red),
                               ),
+                          qrCodeCallback: (code) {
+                            setState(() {
+                              qr = code;
+                            });
+                          },
+                          child: new Container(
+                            decoration: new BoxDecoration(
+                              color: Colors.transparent,
+                              border: Border.all(color: Colors.orange, width: 10.0, style: BorderStyle.solid),
                             ),
                           ),
                         ),
@@ -87,4 +79,5 @@ class _MyAppState extends State<MyApp> {
           }),
     );
   }
+
 }

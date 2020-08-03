@@ -28,6 +28,7 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     private static final String TAG = "cgr.qrmv.QrDetector";
     private final QrReaderCallbacks communicator;
     private final FirebaseVisionBarcodeDetector detector;
+    private final Long timeoutMillis;
 
     public interface Frame {
         FirebaseVisionImage toImage();
@@ -41,17 +42,34 @@ class QrDetector implements OnSuccessListener<List<FirebaseVisionBarcode>>, OnFa
     @GuardedBy("this")
     private Frame processingFrame;
 
-    QrDetector(QrReaderCallbacks communicator, FirebaseVisionBarcodeDetectorOptions options) {
+    @GuardedBy("this")
+    private Long latestTime;
+
+
+
+    QrDetector(QrReaderCallbacks communicator, FirebaseVisionBarcodeDetectorOptions options,Long timeoutMillis) {
         this.communicator = communicator;
         this.detector = FirebaseVision.getInstance().getVisionBarcodeDetector(options);
+        if (timeoutMillis == null){
+            this.timeoutMillis = 0L;
+        }else  {
+            this.timeoutMillis = timeoutMillis;
+        }
     }
 
     void detect(Frame frame) {
-        if (latestFrame != null) latestFrame.close();
-        latestFrame = frame;
+        if (latestTime == null) latestTime = System.currentTimeMillis();
 
-        if (processingFrame == null) {
-            processLatest();
+        if (System.currentTimeMillis() - timeoutMillis > latestTime){
+            latestTime = System.currentTimeMillis();
+            Log.d(TAG, "detect: start new frame ");
+            if (latestFrame != null) latestFrame.close();
+            latestFrame = frame;
+            if (processingFrame == null) {
+                processLatest();
+            }
+        } else {
+          frame.close();
         }
     }
 

@@ -27,6 +27,7 @@ import androidx.annotation.RequiresApi;
 import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -159,7 +160,7 @@ class QrCameraC2 implements QrCamera {
             sensorOrientation = sensorOrientationInteger == null ? 0 : sensorOrientationInteger;
 
            // size = getAppropriatePreviewSize(map.getOutputSizes(SurfaceTexture.class),targetHeight,targetWidth);
-            size = CameraUtils.computeBestPreviewSize(cameraId, CameraUtils.ResolutionPreset.high);
+            size = CameraUtils.computeBestPreviewSize(cameraId, CameraUtils.ResolutionPreset.max);
             Log.d(TAG, "start: preview size: " + size.toString() + "input size: height " + targetHeight + "width:" + targetWidth );
             jpegSizes = map.getOutputSizes(ImageFormat.JPEG);
 
@@ -239,10 +240,10 @@ class QrCameraC2 implements QrCamera {
         reader = ImageReader.newInstance(width, height, ImageFormat.YUV_420_888, 5);
 
         list.add(reader.getSurface());
-
         ImageReader.OnImageAvailableListener imageAvailableListener = new ImageReader.OnImageAvailableListener() {
             @Override
             public void onImageAvailable(ImageReader reader) {
+                Log.d(TAG, "onImageAvailable:");
                 try {
                     Image image = reader.acquireLatestImage();
                     if (image == null) return;
@@ -286,7 +287,7 @@ class QrCameraC2 implements QrCamera {
 
                 @Override
                 public void onConfigureFailed(@NonNull CameraCaptureSession session) {
-                    System.out.println("### Configuration Fail ###");
+                    Log.e(TAG, "### Configuration Fail ###");
                 }
             }, null);
         } catch (Throwable t) {
