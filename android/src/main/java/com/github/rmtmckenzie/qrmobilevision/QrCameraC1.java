@@ -10,8 +10,8 @@ import android.util.SparseIntArray;
 import android.view.Surface;
 import android.view.WindowManager;
 
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
+
+import com.google.mlkit.vision.common.InputImage;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -60,19 +60,19 @@ class QrCameraC1 implements QrCamera, Camera.AutoFocusCallback {
         int result;
         switch (rotationCompensation) {
             case 0:
-                result = FirebaseVisionImageMetadata.ROTATION_0;
+                result = Surface.ROTATION_0;
                 break;
             case 90:
-                result = FirebaseVisionImageMetadata.ROTATION_90;
+                result = Surface.ROTATION_90;
                 break;
             case 180:
-                result = FirebaseVisionImageMetadata.ROTATION_180;
+                result = Surface.ROTATION_180;
                 break;
             case 270:
-                result = FirebaseVisionImageMetadata.ROTATION_270;
+                result = Surface.ROTATION_270;
                 break;
             default:
-                result = FirebaseVisionImageMetadata.ROTATION_0;
+                result = Surface.ROTATION_0;
                 Log.e(TAG, "Bad rotation value: " + rotationCompensation);
         }
         return result;
@@ -123,12 +123,9 @@ class QrCameraC1 implements QrCamera, Camera.AutoFocusCallback {
                 public void onPreviewFrame(byte[] data, android.hardware.Camera camera) {
                     android.hardware.Camera.Size previewSize = camera.getParameters().getPreviewSize();
                     if (data != null) {
-                        QrDetector.Frame frame = new Frame(data, new FirebaseVisionImageMetadata.Builder()
-                            .setFormat(IMAGEFORMAT)
-                            .setWidth(previewSize.width)
-                            .setHeight(previewSize.height)
-                            .setRotation(getFirebaseOrientation())
-                            .build());
+
+                        QrDetector.Frame frame = new Frame(data,
+                            previewSize.width, previewSize.height, getFirebaseOrientation(), IMAGEFORMAT);
                         detector.detect(frame);
                     }
                 }
@@ -156,16 +153,23 @@ class QrCameraC1 implements QrCamera, Camera.AutoFocusCallback {
 
     static class Frame implements QrDetector.Frame {
         private byte[] data;
-        private final FirebaseVisionImageMetadata metadata;
+        private final int imageFormat;
+        private final int width;
+        private final int height;
+        private final int rotationDegrees;
 
-        Frame(byte[] data, FirebaseVisionImageMetadata metadata) {
+        Frame(byte[] data, int width, int height, int rotationDegrees, int imageFormat) {
             this.data = data;
-            this.metadata = metadata;
+            this.width = width;
+            this.height = height;
+            this.rotationDegrees = rotationDegrees;
+            this.imageFormat = imageFormat;
         }
 
         @Override
-        public FirebaseVisionImage toImage() {
-            return FirebaseVisionImage.fromByteArray(data, metadata);
+        public InputImage toImage() {
+            //fromByteArray(byte[] byteArray, int width, int height, int rotationDegrees, int format)
+            return InputImage.fromByteArray(data, width, height, rotationDegrees, imageFormat);
         }
 
         @Override

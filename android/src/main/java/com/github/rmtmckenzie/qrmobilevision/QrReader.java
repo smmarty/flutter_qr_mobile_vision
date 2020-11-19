@@ -10,7 +10,7 @@ import android.os.Build;
 import android.util.Log;
 
 import com.google.android.gms.vision.CameraSource;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions;
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions;
 
 import java.io.IOException;
 
@@ -22,7 +22,7 @@ class QrReader {
     private Heartbeat heartbeat;
     private CameraSource camera;
 
-    QrReader(int width, int height, Activity context, FirebaseVisionBarcodeDetectorOptions options,
+    QrReader(int width, int height, Activity context, BarcodeScannerOptions options,
              final QRReaderStartedCallback startedCallback, final QrReaderCallbacks communicator,
              final SurfaceTexture texture) {
         this.context = context;
@@ -30,10 +30,10 @@ class QrReader {
 
         if (android.os.Build.VERSION.SDK_INT >= 21) {
             Log.i(TAG, "Using new camera API.");
-            qrCamera = new QrCameraC2(width, height, texture, context, new QrDetector(communicator, options,1000L));
+            qrCamera = new QrCameraC2(width, height, texture, context, new QrDetector(communicator, options));
         } else {
             Log.i(TAG, "Using old camera API.");
-            qrCamera = new QrCameraC1(width, height, texture, context, new QrDetector(communicator, options,1000L));
+            qrCamera = new QrCameraC1(width, height, texture, context, new QrDetector(communicator, options));
         }
     }
 
