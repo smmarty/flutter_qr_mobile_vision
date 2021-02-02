@@ -1,12 +1,13 @@
 import Foundation
 import AVFoundation
-import FirebaseMLVision
+import MLKitVision
+import MLKitBarcodeScanning
 import os.log
 
 
-extension VisionBarcodeDetectorOptions {
+extension BarcodeScannerOptions {
   convenience init(formatStrings: [String]) {
-    let formats = formatStrings.map { (format) -> VisionBarcodeFormat? in
+    let formats = formatStrings.map { (format) -> BarcodeFormat? in
       switch format  {
       case "ALL_FORMATS":
         return .all
@@ -40,30 +41,30 @@ extension VisionBarcodeDetectorOptions {
         // ignore any unknown values
         return nil
       }
-    }.reduce([]) { (result, format) -> VisionBarcodeFormat in
+    }.reduce([]) { (result, format) -> BarcodeFormat in
       guard let format = format else {
         return result
       }
       return result.union(format)
     }
-    
+
     self.init(formats: formats)
   }
 }
 
 class OrientationHandler {
-  
+
   var lastKnownOrientation: UIDeviceOrientation!
-  
+
   init() {
     setLastOrientation(UIDevice.current.orientation, defaultOrientation: .portrait)
     UIDevice.current.beginGeneratingDeviceOrientationNotifications()
-    
+
     NotificationCenter.default.addObserver(forName: UIDevice.orientationDidChangeNotification, object: nil, queue: nil, using: orientationDidChange(_:))
   }
-  
+
   func setLastOrientation(_ deviceOrientation: UIDeviceOrientation, defaultOrientation: UIDeviceOrientation?) {
-    
+
     // set last device orientation but only if it is recognized
     switch deviceOrientation {
     case .unknown, .faceUp, .faceDown:
@@ -73,18 +74,18 @@ class OrientationHandler {
       lastKnownOrientation = deviceOrientation
     }
   }
-  
+
   func orientationDidChange(_ notification: Notification) {
     let deviceOrientation = UIDevice.current.orientation
-    
+
     let prevOrientation = lastKnownOrientation
     setLastOrientation(deviceOrientation, defaultOrientation: nil)
-    
+
     if prevOrientation != lastKnownOrientation {
       //TODO: notify of orientation change??? (but mostly why bother...)
     }
   }
-  
+
   deinit {
     UIDevice.current.endGeneratingDeviceOrientationNotifications()
   }
@@ -95,34 +96,37 @@ protocol QrReaderResponses {
   func qrReceived(code: String)
 }
 
+enum QrReaderError: Error {
+  case noCamera
+}
+
 class QrReader: NSObject {
   let targetWidth: Int
   let targetHeight: Int
   let textureRegistry: FlutterTextureRegistry
   let isProcessing = Atomic<Bool>(false)
-  
+
   var captureDevice: AVCaptureDevice!
   var captureSession: AVCaptureSession!
   var previewSize: CMVideoDimensions!
   var textureId: Int64!
   var pixelBuffer : CVPixelBuffer?
-  let barcodeDetector: VisionBarcodeDetector
+  let barcodeDetector: BarcodeScanner
   let cameraPosition = AVCaptureDevice.Position.back
   let qrCallback: (_:String) -> Void
-  
-  init(targetWidth: Int, targetHeight: Int, textureRegistry: FlutterTextureRegistry, options: VisionBarcodeDetectorOptions, qrCallback: @escaping (_:String) -> Void) {
+
+  init(targetWidth: Int, targetHeight: Int, textureRegistry: FlutterTextureRegistry, options: BarcodeScannerOptions, qrCallback: @escaping (_:String) -> Void) throws {
     self.targetWidth = targetWidth
     self.targetHeight = targetHeight
     self.textureRegistry = textureRegistry
     self.qrCallback = qrCallback
-    
-    let vision = Vision.vision()
-    self.barcodeDetector = vision.barcodeDetector(options: options)
-    
+
+    self.barcodeDetector = BarcodeScanner.barcodeScanner()
+
     super.init()
-    
+
     captureSession = AVCaptureSession()
-    
+
     if #available(iOS 10.0, *) {
       captureDevice = AVCaptureDevice.default(AVCaptureDevice.DeviceType.builtInWideAngleCamera, for: AVMediaType.video, position: cameraPosition)
     } else {
@@ -133,31 +137,34 @@ class QrReader: NSObject {
         }
       }
     }
-    
+
     if captureDevice == nil {
-      captureDevice = AVCaptureDevice.default(for: AVMediaType.video)!
+      captureDevice = AVCaptureDevice.default(for: AVMediaType.video)
+
+      guard captureDevice != nil else {
+        throw QrReaderError.noCamera
+      }
     }
-    
-    // catch?
-    let input = try! AVCaptureDeviceInput.init(device: captureDevice)
+
+    let input = try AVCaptureDeviceInput.init(device: captureDevice)
     previewSize = CMVideoFormatDescriptionGetDimensions(captureDevice.activeFormat.formatDescription)
-    
+
     let output = AVCaptureVideoDataOutput()
     output.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
     output.alwaysDiscardsLateVideoFrames = true
-    
+
     let queue = DispatchQueue.global(qos: DispatchQoS.QoSClass.default)
     output.setSampleBufferDelegate(self, queue: queue)
-    
+
     captureSession.addInput(input)
     captureSession.addOutput(output)
   }
-  
+
   func start() {
     captureSession.startRunning()
     self.textureId = textureRegistry.register(self)
   }
-  
+
   func stop() {
     captureSession.stopRunning()
     pixelBuffer = nil
@@ -178,27 +185,24 @@ extension QrReader : FlutterTexture {
 extension QrReader: AVCaptureVideoDataOutputSampleBufferDelegate {
   func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
     // runs on dispatch queue
-    
+
     pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer)!
     textureRegistry.textureFrameAvailable(self.textureId)
-    
-    let metadata = VisionImageMetadata()
-    metadata.orientation = imageOrientation(
-      deviceOrientation: UIDevice.current.orientation,
-      defaultOrientation: .portrait
-    )
-    
+
     guard !isProcessing.swap(true) else {
       return
     }
-    
+
     let image = VisionImage(buffer: sampleBuffer)
-    image.metadata = metadata
-    
+    image.orientation = imageOrientation(
+      deviceOrientation: UIDevice.current.orientation,
+      defaultOrientation: .portrait
+    )
+
     DispatchQueue.global(qos: DispatchQoS.QoSClass.utility).async {
-      self.barcodeDetector.detect(in: image) { features, error in
+      self.barcodeDetector.process(image) { features, error in
         self.isProcessing.value = false
-        
+
         guard error == nil else {
           if #available(iOS 10.0, *) {
             os_log("Error decoding barcode %@", error!.localizedDescription)
@@ -208,35 +212,38 @@ extension QrReader: AVCaptureVideoDataOutputSampleBufferDelegate {
           }
           return
         }
-        
+
         guard let features = features, !features.isEmpty else {
           return
         }
-                
+
         for feature in features {
           self.qrCallback(feature.rawValue!)
         }
       }
     }
   }
-  
-  func imageOrientation(
-    deviceOrientation: UIDeviceOrientation,
-    defaultOrientation: UIDeviceOrientation
-  ) -> VisionDetectorImageOrientation {
-    switch deviceOrientation {
-    case .portrait:
-      return cameraPosition == .front ? .leftTop : .rightTop
-    case .landscapeLeft:
-      return cameraPosition == .front ? .bottomLeft : .topLeft
-    case .portraitUpsideDown:
-      return cameraPosition == .front ? .rightBottom : .leftBottom
-    case .landscapeRight:
-      return cameraPosition == .front ? .topRight : .bottomRight
-    case .faceDown, .faceUp, .unknown:
-      fallthrough
-    @unknown default:
-      return imageOrientation(deviceOrientation: defaultOrientation, defaultOrientation: .portrait)
+
+
+
+    func imageOrientation(
+      deviceOrientation: UIDeviceOrientation,
+      defaultOrientation: UIDeviceOrientation
+    ) -> UIImage.Orientation {
+      switch deviceOrientation {
+      case .portrait:
+        return cameraPosition == .front ? .leftMirrored : .right
+      case .landscapeLeft:
+        return cameraPosition == .front ? .downMirrored : .up
+      case .portraitUpsideDown:
+        return cameraPosition == .front ? .rightMirrored : .left
+      case .landscapeRight:
+        return cameraPosition == .front ? .upMirrored : .down
+      case .faceDown, .faceUp, .unknown:
+        return .up
+      @unknown default:
+        return imageOrientation(deviceOrientation: defaultOrientation, defaultOrientation: .portrait)
+        }
     }
-  }
+
 }
