@@ -25,7 +25,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String qr;
+  String? qr;
   bool camState = false;
 
   @override
@@ -46,9 +46,9 @@ class _MyAppState extends State<MyApp> {
                     ? new Center(
                         child: new QrCamera(
                           onError: (context, error) => Text(
-                                error.toString(),
-                                style: TextStyle(color: Colors.red),
-                              ),
+                            error.toString(),
+                            style: TextStyle(color: Colors.red),
+                          ),
                           qrCodeCallback: (code) {
                             setState(() {
                               qr = code;
@@ -57,7 +57,10 @@ class _MyAppState extends State<MyApp> {
                           child: new Container(
                             decoration: new BoxDecoration(
                               color: Colors.transparent,
-                              border: Border.all(color: Colors.orange, width: 10.0, style: BorderStyle.solid),
+                              border: Border.all(
+                                  color: Colors.orange,
+                                  width: 10.0,
+                                  style: BorderStyle.solid),
                             ),
                           ),
                         ),
@@ -79,5 +82,4 @@ class _MyAppState extends State<MyApp> {
           }),
     );
   }
-
 }
