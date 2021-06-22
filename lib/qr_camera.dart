@@ -6,7 +6,6 @@ import 'package:flutter/rendering.dart';
 import 'package:native_device_orientation/native_device_orientation.dart';
 import 'package:qr_mobile_vision/qr_mobile_vision.dart';
 
-
 enum ResolutionPreset {
   /// 352x288 on iOS, 240p (320x240) on Android
   low,
@@ -58,28 +57,27 @@ typedef Widget ErrorCallback(BuildContext context, Object error);
 
 class QrCamera extends StatefulWidget {
   QrCamera({
-    Key key,
-    @required this.qrCodeCallback,
+    Key? key,
+    required this.qrCodeCallback,
     this.child,
     this.fit = BoxFit.cover,
-    WidgetBuilder notStartedBuilder,
-    WidgetBuilder offscreenBuilder,
-    ErrorCallback onError,
+    WidgetBuilder? notStartedBuilder,
+    WidgetBuilder? offscreenBuilder,
+    ErrorCallback? onError,
     this.formats,
   })  : notStartedBuilder = notStartedBuilder ?? _defaultNotStartedBuilder,
         offscreenBuilder =
             offscreenBuilder ?? notStartedBuilder ?? _defaultOffscreenBuilder,
         onError = onError ?? _defaultOnError,
-        assert(fit != null),
         super(key: key);
 
   final BoxFit fit;
   final ValueChanged<String> qrCodeCallback;
-  final Widget child;
+  final Widget? child;
   final WidgetBuilder notStartedBuilder;
   final WidgetBuilder offscreenBuilder;
   final ErrorCallback onError;
-  final List<BarcodeFormats> formats;
+  final List<BarcodeFormats>? formats;
 
   @override
   QrCameraState createState() => new QrCameraState();
@@ -89,12 +87,12 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance?.addObserver(this);
   }
 
   @override
   dispose() {
-    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance?.removeObserver(this);
     super.dispose();
   }
 
@@ -103,7 +101,7 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       setState(() => onScreen = true);
     } else {
-      if (_asyncInitOnce != null && onScreen) {
+      if (onScreen) {
         QrMobileVision.stop();
       }
       setState(() {
@@ -114,7 +112,7 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
   }
 
   bool onScreen = true;
-  Future<PreviewDetails> _asyncInitOnce;
+  Future<PreviewDetails>? _asyncInitOnce;
 
   Future<PreviewDetails> _asyncInit(num width, num height) async {
     var previewDetails = await QrMobileVision.start(
@@ -156,10 +154,11 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
     return new LayoutBuilder(
         builder: (BuildContext context, BoxConstraints constraints) {
       if (_asyncInitOnce == null && onScreen) {
-        final width = constraints.maxWidth * MediaQuery.of(context).devicePixelRatio;
-        final height = constraints.maxHeight * MediaQuery.of(context).devicePixelRatio;
-        _asyncInitOnce =
-            _asyncInit(width, height);
+        final width =
+            constraints.maxWidth * MediaQuery.of(context).devicePixelRatio;
+        final height =
+            constraints.maxHeight * MediaQuery.of(context).devicePixelRatio;
+        _asyncInitOnce = _asyncInit(width, height);
       } else if (!onScreen) {
         return widget.offscreenBuilder(context);
       }
@@ -174,13 +173,13 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
             case ConnectionState.done:
               if (details.hasError) {
                 debugPrint(details.error.toString());
-                return widget.onError(context, details.error);
+                return widget.onError(context, details.error!);
               }
-              Widget preview = new SizedBox(
+              final preview = SizedBox(
                 width: constraints.maxWidth,
                 height: constraints.maxHeight,
                 child: Preview(
-                  previewDetails: details.data,
+                  previewDetails: details.data!,
                   targetWidth: constraints.maxWidth,
                   targetHeight: constraints.maxHeight,
                   fit: widget.fit,
@@ -191,7 +190,7 @@ class QrCameraState extends State<QrCamera> with WidgetsBindingObserver {
                 return new Stack(
                   children: [
                     preview,
-                    widget.child,
+                    widget.child!,
                   ],
                 );
               }
@@ -211,16 +210,15 @@ class Preview extends StatelessWidget {
   final double width, height;
   final double targetWidth, targetHeight;
   final int textureId;
-  final int sensorOrientation;
+  final num sensorOrientation;
   final BoxFit fit;
 
   Preview({
-    @required PreviewDetails previewDetails,
-    @required this.targetWidth,
-    @required this.targetHeight,
-    @required this.fit,
-  })  : assert(previewDetails != null),
-        textureId = previewDetails.textureId,
+    required PreviewDetails previewDetails,
+    required this.targetWidth,
+    required this.targetHeight,
+    required this.fit,
+  })  : textureId = previewDetails.textureId,
         width = previewDetails.width.toDouble(),
         height = previewDetails.height.toDouble(),
         sensorOrientation = previewDetails.sensorOrientation;
